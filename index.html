@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe Game</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-image: url('bg.jpg'); /* Ensure you have a bg.jpg in your project directory */
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: #fff;
+            text-align: center;
+        }
+
+        h1 {
+            color: #ffcc00; /* Gold color for the title */
+            margin-bottom: 10px;
+            font-size: 3rem; /* Increased font size */
+        }
+
+        .intro-box {
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            max-width: 600px; /* Limit width for better layout */
+        }
+
+        p {
+            color: #ffffff; /* White color for introduction text */
+            font-size: 1.2rem; /* Adjust font size for better readability */
+        }
+
+        .game-container {
+            width: 400px; /* Increased size for the grid */
+            height: 400px; /* Increased size for the grid */
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            background-color: rgba(51, 51, 51, 0.8);
+            border-radius: 15px;
+            padding: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            position: relative; /* Positioning context for the message */
+        }
+
+        .cell {
+            background-color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem; /* Increased font size */
+            cursor: not-allowed; /* Not clickable initially */
+            border-radius: 10px;
+            transition: background-color 0.3s, transform 0.2s, box-shadow 0.3s;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            pointer-events: none; /* Disable pointer events initially */
+        }
+
+        .cell.x {
+            color: #ff5733; /* Red for 'X' */
+        }
+
+        .cell.o {
+            color: #33c3ff; /* Blue for 'O' */
+        }
+
+        .cell:hover {
+            background-color: #e0e0e0;
+            transform: scale(1.05); /* Smooth scaling effect */
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); /* Enhanced shadow effect */
+        }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+            display: none; /* Hidden by default */
+            color: #ffcc00; /* Gold color for the message */
+            font-size: 2rem;
+        }
+
+        .restart-btn,
+        .close-btn {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 1.2rem;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.2s;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .restart-btn:hover,
+        .close-btn:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Tic-Tac-Toe Game</h1>
+    <div class="intro-box">
+        <p>Welcome to the Tic-Tac-Toe game! Take turns placing your X or O in the grid. The first player to align three of their symbols horizontally, vertically, or diagonally wins!</p>
+    </div>
+
+    <div class="game-container" id="gameContainer">
+        <div class="cell" data-index="0"></div>
+        <div class="cell" data-index="1"></div>
+        <div class="cell" data-index="2"></div>
+        <div class="cell" data-index="3"></div>
+        <div class="cell" data-index="4"></div>
+        <div class="cell" data-index="5"></div>
+        <div class="cell" data-index="6"></div>
+        <div class="cell" data-index="7"></div>
+        <div class="cell" data-index="8"></div>
+
+        <div class="message fade" id="message">
+            <span id="resultText"></span>
+            <button class="close-btn" id="closeBtn">Close</button>
+        </div>
+    </div>
+
+    <button class="restart-btn" id="restartBtn">Start Game</button>
+
+    <script>
+        const cells = document.querySelectorAll('.cell');
+        const messageDisplay = document.getElementById('message');
+        const resultText = document.getElementById('resultText');
+        const restartBtn = document.getElementById('restartBtn');
+        const closeBtn = document.getElementById('closeBtn');
+
+        let board = ['', '', '', '', '', '', '', '', ''];
+        let currentPlayer = 'X';
+        let isGameActive = false; // Initially set to false
+
+        const winningConditions = [
+            [0, 1, 2],
+            [3, 4, 5],
+            [6, 7, 8],
+            [0, 3, 6],
+            [1, 4, 7],
+            [2, 5, 8],
+            [0, 4, 8],
+            [2, 4, 6]
+        ];
+
+        function handleCellClick(event) {
+            const cell = event.target;
+            const index = cell.getAttribute('data-index');
+
+            if (board[index] !== '' || !isGameActive) {
+                return;
+            }
+
+            board[index] = currentPlayer;
+            cell.textContent = currentPlayer;
+            cell.classList.add(currentPlayer.toLowerCase()); // Add class for color
+            checkResult();
+        }
+
+        function checkResult() {
+            for (let condition of winningConditions) {
+                const [a, b, c] = condition;
+                if (board[a] && (board[a] === board[b] && board[a] === board[c])) {
+                    isGameActive = false;
+                    resultText.textContent = `${currentPlayer} wins!`;
+                    messageDisplay.classList.add('show');
+                    messageDisplay.style.display = 'block'; // Show the message box
+                    return;
+                }
+            }
+
+            if (!board.includes('')) {
+                isGameActive = false;
+                resultText.textContent = 'It\'s a draw!';
+                messageDisplay.classList.add('show');
+                messageDisplay.style.display = 'block'; // Show the message box
+                return;
+            }
+
+            currentPlayer = currentPlayer === 'X' ? 'O' : 'X';
+        }
+
+        function restartGame() {
+            board = ['', '', '', '', '', '', '', '', ''];
+            isGameActive = true; // Set to true when game restarts
+            currentPlayer = 'X';
+            resultText.textContent = '';
+            messageDisplay.classList.remove('show');
+            messageDisplay.style.display = 'none'; // Hide the message box
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.classList.remove('x', 'o'); // Remove classes for color
+                cell.style.pointerEvents = 'auto'; // Enable pointer events on cells
+                cell.style.cursor = 'pointer'; // Change cursor to pointer
+            });
+        }
+
+        // Close message box
+        function closeMessage() {
+            messageDisplay.classList.remove('show');
+            messageDisplay.style.display = 'none'; // Hide the message box
+        }
+
+        // Disable game cells initially
+        cells.forEach(cell => cell.style.pointerEvents = 'none');
+
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        restartBtn.addEventListener('click', () => {
+            restartGame();
+            restartBtn.textContent = 'Restart Game'; // Change button text after starting the game
+            cells.forEach(cell => {
+                cell.style.pointerEvents = 'auto'; // Enable pointer events on cells
+                cell.style.cursor = 'pointer'; // Change cursor to pointer
+            });
+            isGameActive = true; // Set the game as active
+        });
+        closeBtn.addEventListener('click', closeMessage);
+    </script>
+</body>
+
+</html>
